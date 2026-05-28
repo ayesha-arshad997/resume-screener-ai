@@ -50,5 +50,5 @@ app.post('/api/analyze', async (req, res) => {
 })
 
 app.listen(3001, () => {
-  console.log('Proxy running on http://localhost:3001')
+  console.log('Proxy running on resume-screener-ai-production.up.railway.app')
 })
