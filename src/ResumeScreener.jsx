@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL
 import { useState, useRef } from "react";
 
 const ACCENT = "#0ea5e9";
@@ -134,13 +135,14 @@ Respond ONLY with a valid JSON object (no markdown, no preamble) with this exact
     "keywords": <0-100>
   }
 }`;
-
-    try {
-      const res = await fetch("http://localhost:3001/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
-      });
+try {
+  const res = await fetch(`${API_URL}/api/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
       const data = await res.json();
       const text = data.content?.map((b) => b.text || "").join("") || "";
       setDebugInfo("RAW: " + text.slice(0, 300));
