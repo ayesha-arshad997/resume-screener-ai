@@ -136,8 +136,7 @@ Respond ONLY with a valid JSON object (no markdown, no preamble) with this exact
 }`;
 
     try {
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const res = await fetch(`${apiUrl}/api/analyze`, {        method: "POST",
+const res = await fetch("/api/analyze", {        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
       });
