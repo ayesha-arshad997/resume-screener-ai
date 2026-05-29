@@ -1,84 +1,53 @@
-import express from "express";
-import cors from "cors";
+import express from 'express'
+import cors from 'cors'
+import fetch from 'node-fetch'
 
-const app = express();
+const app = express()
+app.use(cors())
+app.use(express.json())
 
-app.use(cors());
-app.use(express.json());
-
-// health check (VERY IMPORTANT for Railway)
-app.get("/", (req, res) => {
-  res.send("Resume Screener API is running 🚀");
-});
-
-app.post("/api/analyze", async (req, res) => {
+app.post('/api/analyze', async (req, res) => {
   try {
-    const userMessage = req.body?.messages?.[0]?.content;
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`      },
+      body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a resume screening AI. Always respond with valid JSON only. No markdown, no code blocks, no explanation. Just the raw JSON object.'
+          },
+          {
+            role: 'user',
+            content: req.body.messages[0].content
+          }
+        ],
+        max_tokens: 1500,
+        temperature: 0.1
+      })
+    })
 
-    if (!userMessage) {
-      return res.status(400).json({ error: "Missing resume/job data" });
+    const data = await response.json()
+    console.log('GROQ FULL RESPONSE:', JSON.stringify(data))
+
+    if (data.error) {
+      console.log('GROQ ERROR:', data.error)
+      return res.status(500).json({ error: data.error.message })
     }
 
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Return ONLY valid JSON. No markdown, no explanation, no code blocks.",
-            },
-            {
-              role: "user",
-              content: userMessage,
-            },
-          ],
-          temperature: 0.2,
-          max_tokens: 1500,
-        }),
-      }
-    );
+    const text = data.choices?.[0]?.message?.content || ''
+    console.log('TEXT EXTRACTED:', text)
+    res.json({ content: [{ text: text }] })
 
-    // if Groq fails
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Groq API Error:", errText);
-      return res.status(500).json({
-        error: "Groq API failed",
-        details: errText,
-      });
-    }
-
-    const data = await response.json();
-
-    const text = data?.choices?.[0]?.message?.content;
-
-    if (!text) {
-      return res.status(500).json({
-        error: "Empty response from Groq",
-      });
-    }
-
-    return res.json({
-      content: [{ text }],
-    });
   } catch (err) {
-    console.error("Server Error:", err);
-    return res.status(500).json({
-      error: err.message || "Internal server error",
-    });
+    console.error('Server Error:', err)
+    res.status(500).json({ error: err.message })
   }
-});
+})
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(3001, () => {
+  console.log('Proxy running on http://localhost:3001')
+})
